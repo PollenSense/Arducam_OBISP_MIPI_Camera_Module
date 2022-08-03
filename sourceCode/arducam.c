@@ -481,51 +481,6 @@ static int arducam_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	return 0;
 }
 
-static int arducam_set_ctrl(struct v4l2_ctrl *ctrl)
-{
-	struct arducam *arducam =
-		container_of(ctrl->handler, struct arducam, ctrl_handler);
-	struct i2c_client *client = v4l2_get_subdevdata(&arducam->sd);
-	int ret = 0;
-
-	/*
-	 * Applying V4L2 control value only happens
-	 * when power is up for streaming
-	 */
-	if (pm_runtime_get_if_in_use(&client->dev) == 0)
-		return 0;
-
-	switch (ctrl->id) {
-	case V4L2_CID_ANALOGUE_GAIN:
-		ret = arducam_write_reg(arducam, arducam_REG_ANALOG_GAIN,
-				       arducam_REG_VALUE_08BIT, ctrl->val);
-		break;
-	case V4L2_CID_EXPOSURE:
-		ret = arducam_write_reg(arducam, arducam_REG_EXPOSURE,
-				       arducam_REG_VALUE_16BIT, ctrl->val);
-		break;
-	case V4L2_CID_DIGITAL_GAIN:
-		ret = arducam_write_reg(arducam, arducam_REG_DIGITAL_GAIN,
-				       arducam_REG_VALUE_16BIT, ctrl->val);
-		break;
-	case V4L2_CID_TEST_PATTERN:
-		ret = arducam_write_reg(arducam, arducam_REG_TEST_PATTERN,
-				       arducam_REG_VALUE_16BIT,
-				       arducam_test_pattern_val[ctrl->val]);
-		break;
-	default:
-		dev_info(&client->dev,
-			 "ctrl(id:0x%x,val:0x%x) is not handled\n",
-			 ctrl->id, ctrl->val);
-		ret = -EINVAL;
-		break;
-	}
-
-	pm_runtime_put(&client->dev);
-
-	return ret;
-}
-
 static int arducam_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	int ret;
@@ -536,6 +491,15 @@ static int arducam_s_ctrl(struct v4l2_ctrl *ctrl)
 			 __func__, ctrl->id, ctrl->val);
 		ret = arducam_write(priv->client, CTRL_ID_REG, ctrl->id);
 		ret += arducam_write(priv->client, CTRL_VALUE_REG, ctrl->val);
+
+		// HACK: sometimes control settings don't take; try multiple times
+		mdelay(1);
+		ret += arducam_write(priv->client, CTRL_ID_REG, ctrl->id);
+		ret += arducam_write(priv->client, CTRL_VALUE_REG, ctrl->val);
+		mdelay(1);
+		ret += arducam_write(priv->client, CTRL_ID_REG, ctrl->id);
+		ret += arducam_write(priv->client, CTRL_VALUE_REG, ctrl->val);
+		
 		if (ret < 0)
 			return -EINVAL;
 	
@@ -543,10 +507,6 @@ static int arducam_s_ctrl(struct v4l2_ctrl *ctrl)
 }
 
 
-
-//static const struct v4l2_ctrl_ops arducam_ctrl_ops = {
-//	.s_ctrl = arducam_set_ctrl,
-//};
 static const struct v4l2_ctrl_ops arducam_ctrl_ops = {
 	.s_ctrl = arducam_s_ctrl,
 };
