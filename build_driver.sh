@@ -87,13 +87,16 @@ echo "Input the branch name of linux kernel that you want to build the driver fo
 echo "(Refer to https://github.com/raspberrypi/linux.git and select the correct branch)"
 read -p "branch [default: rpi-5.10.y]: " select_linux_kernel_branch
 select_linux_kernel_branch=${select_linux_kernel_branch:-rpi-5.10.y}
+read -p "specific commit [default: 0b54dbda3cca2beb51e236a25738784e90853b64]: " select_commit
+select_commit=${select_commit:-0b54dbda3cca2beb51e236a25738784e90853b64}
 echo "----------------------------------------------------------------------------------------"
 echo "Running"
 if [ -d linux ]; then
 	echo "Repo exists.  Reverting..."
 	git -C linux reset --hard HEAD
 else
-	git clone --depth=1 -b $select_linux_kernel_branch --single-branch https://github.com/raspberrypi/linux.git
+	git clone -b $select_linux_kernel_branch --single-branch https://github.com/raspberrypi/linux.git
+	git checkout select_commit
 fi
 
 if [ $? -eq 0 ]; then
