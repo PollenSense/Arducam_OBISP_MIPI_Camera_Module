@@ -502,7 +502,8 @@ static int arducam_s_ctrl(struct v4l2_ctrl *ctrl)
 
 	v4l2_dbg(1, debug, priv->client, "%s: cid = (0x%X), value = (%d).\n",
 			 __func__, ctrl->id, ctrl->val);
-	for (int i = 0; i < SET_CTRL_RETRIES; ++i)	// HACK: try n times - sometimes silently fails 
+	int i = 0;
+	for (i = 0; i < SET_CTRL_RETRIES; ++i) // HACK: try n times - sometimes silently fails
 	{
 		ret += arducam_write(priv->client, CTRL_ID_REG, ctrl->id);
 		ret += arducam_write(priv->client, CTRL_VALUE_REG, ctrl->val);
@@ -513,7 +514,6 @@ static int arducam_s_ctrl(struct v4l2_ctrl *ctrl)
 
 	return 0;
 }
-
 
 static const struct v4l2_ctrl_ops arducam_ctrl_ops = {
 	.s_ctrl = arducam_s_ctrl,
