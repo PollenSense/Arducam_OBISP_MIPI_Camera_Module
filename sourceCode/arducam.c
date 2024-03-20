@@ -1525,7 +1525,11 @@ error_handler_free:
 	return ret;
 }
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(6,0,0)
 static int arducam_remove(struct i2c_client *client)
+#else
+static void arducam_remove(struct i2c_client *client)
+#endif
 {
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
 	struct arducam *arducam = to_arducam(sd);
@@ -1537,7 +1541,9 @@ static int arducam_remove(struct i2c_client *client)
 	pm_runtime_disable(&client->dev);
 	pm_runtime_set_suspended(&client->dev);
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(6,0,0)
 	return 0;
+#endif
 }
 
 static const struct of_device_id arducam_dt_ids[] = {
